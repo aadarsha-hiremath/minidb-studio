@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "minidb-engine"
+dynamic = ["version"]
+description = "MiniDB transactional storage engine and native database studio"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+minidb = "minidb.cli:main"
+
+[project.gui-scripts]
+minidb-gui = "minidb_studio:main"
+
+[project.optional-dependencies]
+gui = ["PySide6-Essentials>=6.8,<7"]
+
+[tool.setuptools.dynamic]
+version = {attr = "minidb.__version__"}
+
+[tool.setuptools]
+packages = ["minidb", "minidb_studio"]
