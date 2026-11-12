@@ -1,4 +1,4 @@
-﻿# MiniDB Studio & Storage Engine
+# MiniDB Studio & Storage Engine
 
 MiniDB is a Python 3.11+ educational database engine with typed tables, a single-table SQL language, persistent B+ tree indexes, and transactions backed by a binary write-ahead log. Rows, schema definitions, and index nodes share one checksummed binary file. A permanent `.wal` companion stores redo during commit and recovery. The core uses only the standard library.
 
@@ -6,7 +6,7 @@ MiniDB Studio is the optional native desktop workspace for these local files. Br
 
 ![MiniDB Studio running an indexed query against a disposable observation database](assets/studio/sql-workspace.png)
 
-[Studio user guide and screenshot gallery](docs/studio.md) Â· [0.4.0 release notes](docs/release-notes-0.4.0.md) Â· [Native GUI measurements](docs/studio-benchmarks.md)
+[Studio user guide and screenshot gallery](docs/studio.md) · [0.4.0 release notes](docs/release-notes-0.4.0.md) · [Native GUI measurements](docs/studio-benchmarks.md)
 
 ## Install and run on Windows
 
@@ -52,7 +52,7 @@ $mini = ".\.venv\Scripts\minidb.exe"
 # ok
 ```
 
-The Python equivalent is `db.execute("SELECT name FROM students WHERE id = ?", (101,)).rows`. SQL supports CREATE TABLE, INSERT, SELECT, UPDATE, DELETE, CREATE INDEX, DROP INDEX, and EXPLAIN SELECT. Comparisons and AND, one ORDER BY column, and LIMIT are available. [Grammar, binding and planning](docs/sql.md) Â· [B+ tree design and validation](docs/indexes.md).
+The Python equivalent is `db.execute("SELECT name FROM students WHERE id = ?", (101,)).rows`. SQL supports CREATE TABLE, INSERT, SELECT, UPDATE, DELETE, CREATE INDEX, DROP INDEX, and EXPLAIN SELECT. Comparisons and AND, one ORDER BY column, and LIMIT are available. [Grammar, binding and planning](docs/sql.md) · [B+ tree design and validation](docs/indexes.md).
 
 ## Commit and roll back in one session
 
@@ -129,7 +129,7 @@ with Database.open("library.mdb") as db:
     db.delete("books", rid)
 ```
 
-`RecordID(page, slot)` identifies a physical location in one database. Updates preserve the ID. Names and values such as the example's `number` are ordinary fields and may repeat. There are no logical primary keys. Table names and column names are case-sensitive ASCII identifiers matching `[A-Za-z_][A-Za-z_0-9]{0,62}`. Each table requires 1â€“63 uniquely named columns and a schema that fits one catalog page.
+`RecordID(page, slot)` identifies a physical location in one database. Updates preserve the ID. Names and values such as the example's `number` are ordinary fields and may repeat. There are no logical primary keys. Table names and column names are case-sensitive ASCII identifiers matching `[A-Za-z_][A-Za-z_0-9]{0,62}`. Each table requires 1–63 uniquely named columns and a schema that fits one catalog page.
 
 | Type | Accepted value |
 | --- | --- |
@@ -179,7 +179,7 @@ The Studio tests require the GUI extra. Set `$env:QT_QPA_PLATFORM='offscreen'` f
 
 The recovery demo terminates real child processes on disposable files and prints recovered balances. [Phase 3 transaction measurements](docs/transaction-benchmarks.md).
 
-The suite uses temporary files, seeded CRUD models, indexed and sequential query oracles, separately launched CLI processes, deliberately malformed checksummed pages, and injected I/O failures. CI runs the suite on Linux and Windows for Python 3.11â€“3.15. The index benchmark reports query time, maintenance cost, full-validation reopen time, and file size. [Phase 2 benchmark measurements](docs/benchmarks.md).
+The suite uses temporary files, seeded CRUD models, indexed and sequential query oracles, separately launched CLI processes, deliberately malformed checksummed pages, and injected I/O failures. The engine and Studio test suites are included for local verification; this source-only repository does not currently run GitHub-hosted CI. The index benchmark reports query time, maintenance cost, full-validation reopen time, and file size. [Phase 2 benchmark measurements](docs/benchmarks.md).
 
 The historical Phase 1 baseline below used `storage.py` on 1,500 integer/text rows. It fetched every record in seeded shuffled order, scanned every row, and verified values outside the timed regions. Create and bulk insert included close and sync. Table creation was outside the insert measurement. OS caches remained enabled.
 
