@@ -6,12 +6,12 @@ Studio is a local Qt Widgets client for MiniDB. The first window is empty. Creat
 
 | Task | Action |
 | --- | --- |
-| Browse | Select a table in the explorer. Table data reads up to 128 records in physical RID order. Next advances the existing iterator. Refresh starts at the beginning. Selecting a column opens its schema. |
+| Browse | Select a table in the explorer. Table data reads up to 128 records in physical RID order. Next advances the existing iterator. Refresh or F5 reloads the first record window for the selected table. Selecting a column opens its schema. |
 | Inspect | Select a record, schema field or index. The side inspector displays the selection. Drag the dividers or use the Workspace menu to hide either side panel. |
 | Write SQL | Enter one complete statement, including multiline SQL. Ctrl+Enter runs the whole editor. Run selection submits only selected text as one statement. The engine rejects extra statements before running any. Ctrl+S saves the draft to a new SQL file. |
 | Manage data | Use CREATE TABLE, INSERT, UPDATE or DELETE in the editor. The grid is read-only. Studio asks before UPDATE, DELETE, DROP INDEX and ROLLBACK. The engine supports integer, text, and Boolean fields. |
 | Work in a transaction | Begin, Commit, and Rollback operate on the editor's handle. The status bar shows current transaction state. The last-operation text records events such as a successful commit. A failed SQL statement in an active transaction can require rollback. |
-| Manage indexes | Open Indexes to inspect the name, table, column and root page. Create index selects a table and column. Drop index asks which index to remove and requests confirmation. F5 refreshes the active view. |
+| Manage indexes | Open Indexes to inspect the name, table, column and root page. Create index selects a table and column. Drop index asks which index to remove and requests confirmation. Outside the selected Table data view, F5 refreshes catalog metadata. Run SQL again to refresh its results. |
 | Explain | With one SELECT in the editor, choose Explain. The Query plan tab shows the engine's access path and the inspected statement. EXPLAIN SELECT also works directly. |
 | Copy and export | Ctrl+C copies the current cell. The grid context menu can copy selected rows as tab-separated text. Right-click the header to change column visibility. Export writes the entire successful SQL result, including hidden columns, to a new UTF-8 CSV or JSON file. |
 | Check health | Health shows format, transaction, checkpoint, main and WAL byte sizes, actual replay on open, and the last validation. Check integrity closes the idle handle and opens and validates it again. A failure reacquiring the lock is surfaced. |
@@ -40,7 +40,7 @@ The screenshot harness explicitly creates a temporary field-observation database
 
 ## First-time verification
 
-1. Launch Studio from the installed virtual environment. Confirm the empty workspace, then create a fresh `studio-check.mdb`.
+1. Launch Studio from the installed virtual environment. Confirm the empty workspace. Open the native **Create** dialog and cancel it, then open it again and create a fresh `studio-check.mdb` in a disposable folder. Use **File → Close database**. Open the native **Open** dialog and cancel it, then reopen `studio-check.mdb` using that dialog.
 2. Run each of the following as a separate statement. Use the buttons or SQL commands for the transaction boundaries.
 
    ```sql
@@ -55,6 +55,11 @@ The screenshot harness explicitly creates a temporary field-observation database
    ```
 
 3. Verify the title is `First observation`. Open the table in the explorer, select its row, and inspect its RID. Create an index on `id`, then Explain `SELECT title FROM notes WHERE id=1`. The plan should name that index.
-4. Rerun the SELECT, copy the cell, and export the result to a new CSV or JSON file. Run Check integrity. Close the database before opening it from the CLI.
-5. Change theme, density and editor wrap. Drag both splitters, resize a column, and close the whole application. Reopen it and use the recent-file entry. Verify the preferences, then reset them and restart once more.
-6. Start another transaction and try closing the file. Cancel and verify that it remains active. Roll back explicitly. Edit the SQL draft and close the application to exercise the save/discard prompt.
+4. Rerun the SELECT and copy the cell. Cancel the export picker once and confirm the folder is unchanged. Export to new CSV and JSON files and verify that each contains the result. Run Check integrity.
+5. Generate an indexed v1 file in the disposable folder. Open it in Studio, run `SELECT s FROM records WHERE n=4`, and use **Health → Migrate to v3…** to create a different path. Reopen the migrated file. Confirm that Health reports v3, integrity passes, the query returns the same two rows, and Indexes still lists `by_n`.
+
+   ```powershell
+   .\.venv\Scripts\python.exe tests/legacy_fixture.py --indexed "$env:TEMP\studio-v1-check.mdb"
+   ```
+
+6. Start a transaction and try closing the file. Cancel and verify the transaction remains active. Roll back explicitly. Edit the SQL draft and close the application to exercise the save/discard prompt. Restart, reopen the disposable database, and confirm the persisted result. To check settings persistence, change the theme, density, wrap and a column width before exiting and verify them after restart.

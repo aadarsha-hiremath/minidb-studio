@@ -1,0 +1,109 @@
+name: MiniDB CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.11", "3.14"]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PYTHONFAULTHANDLER: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Isolate the installation from the checkout and runner
+        working-directory: ${{ runner.temp }}
+        run: |
+          python -m venv minidb-env
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $bin = if ($IsWindows) { 'Scripts' } else { 'bin' }
+          Join-Path (Resolve-Path minidb-env) $bin | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+      - run: python -m pip install "$env:GITHUB_WORKSPACE"
+      - run: python -m pip check
+      - run: python "$env:GITHUB_WORKSPACE/tests/ci_checks.py" core-smoke
+        working-directory: ${{ runner.temp }}
+      - name: Run engine, SQL, index, WAL, process-crash and migration tests
+        working-directory: ${{ runner.temp }}
+        run: python -W error::ResourceWarning "$env:GITHUB_WORKSPACE/tests/ci_checks.py" core
+      - name: Run the installed recovery example
+        working-directory: ${{ runner.temp }}
+        run: python "$env:GITHUB_WORKSPACE/examples/recovery.py"
+      - name: Install Qt runtime libraries for Ubuntu
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1 libxkbcommon0 libfontconfig1
+      - name: Enable the optional Studio extra after verifying the core
+        run: python -m pip install "${env:GITHUB_WORKSPACE}[gui]"
+      - run: python -m pip check
+      - run: python "$env:GITHUB_WORKSPACE/tests/ci_checks.py" studio-smoke
+        working-directory: ${{ runner.temp }}
+      - name: Run Studio tests with Qt offscreen
+        working-directory: ${{ runner.temp }}
+        run: python "$env:GITHUB_WORKSPACE/tests/ci_checks.py" studio
+      - name: Type-check Studio with the Qt stubs installed
+        if: runner.os == 'Windows' && matrix.python == '3.11'
+        working-directory: ${{ github.workspace }}
+        run: |
+          python -m pip install mypy
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -m mypy --python-version 3.11 minidb minidb_studio
+
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+      - name: Check changed lines for whitespace errors
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            BASE_SHA=$(git rev-parse HEAD^)
+          fi
+          git diff --check "$BASE_SHA" HEAD
+      - run: python -m pip install build twine ruff mypy
+      - run: ruff check minidb minidb_studio tests benchmarks examples tools
+      - run: ruff format --check minidb minidb_studio tests benchmarks examples tools
+      - run: mypy --python-version 3.11 --platform linux minidb
+      - run: python -m build
+      - run: python -m twine check --strict dist/*
+      - name: Smoke-test a clean wheel and validate metadata outside the checkout
+        run: |
+          python -m venv "$RUNNER_TEMP/wheel"
+          "$RUNNER_TEMP/wheel/bin/python" -m pip install --no-index dist/*.whl
+          "$RUNNER_TEMP/wheel/bin/python" -m pip check
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/wheel/bin/python" "$GITHUB_WORKSPACE/tests/ci_checks.py" core-smoke

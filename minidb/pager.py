@@ -63,8 +63,14 @@ def _directory_sync(path: Path) -> None:
 
 class Pager:
     def __init__(
-        self, path: str | Path, *, create: bool, source: "Pager | None" = None
+        self,
+        path: str | Path,
+        *,
+        create: bool,
+        source: "Pager | None" = None,
+        created: dict[Path, os.stat_result] | None = None,
     ):
+        assert create or created is None
         self.failed = False
         self.pid = os.getpid()
         self.thread = threading.current_thread()
@@ -80,6 +86,8 @@ class Pager:
             mode: Literal["x+b", "r+b"] = "x+b" if create else "r+b"
             self.file = open(location, mode, buffering=0, opener=_regular)  # noqa: SIM115
             try:
+                if created is not None:
+                    created[location] = os.fstat(self.file.fileno())
                 _lock(self.file.fileno())
                 if create:
                     self.identity = uuid.uuid4().bytes
@@ -97,6 +105,8 @@ class Pager:
                     if create:
                         wal.boundary("before_wal_create")
                     self.journal = open(wal_path, mode, buffering=0, opener=_regular)  # noqa: SIM115
+                    if created is not None:
+                        created[wal_path] = os.fstat(self.journal.fileno())
                     _lock(self.journal.fileno())
                     if os.fstat(self.journal.fileno()).st_nlink > 1:
                         raise StorageError("WAL must have one file-system link")

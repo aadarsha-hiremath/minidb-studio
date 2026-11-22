@@ -1,4 +1,4 @@
-# Transaction measurements
+# Historical Phase 3 transaction measurements
 
 Windows 11 build 26300, Intel Core i7-14650HX, CPython 3.15.2. Each cell is the median of three independent fresh databases at that row count. The workload uses integer keys and zero-padded text labels. OS caches are enabled. All normal commit syncs run.
 
@@ -32,4 +32,4 @@ From an installed checkout:
 .\.venv\Scripts\python.exe benchmarks/transactions.py --sizes 16 64 256 --iterations 3
 ```
 
-To reproduce the historical comparison, add `--phase2-source PATH` pointing to a separate checkout of the pinned Phase 2 merge. The script runs that writer in a separate Python process against temporary files.
+The command above measures the installed engine. The historical comparison also used `--phase2-source PATH` with a separate checkout of the Phase 2 merge. That revision is outside the public repository history.

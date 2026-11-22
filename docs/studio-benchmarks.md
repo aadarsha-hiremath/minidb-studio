@@ -1,4 +1,4 @@
-# Native Studio measurements
+# Phase 4 native Studio baseline
 
 Windows 11 build 26300, Intel Core i7-14650HX, CPython 3.15.2, PySide6 6.12.0, Qt Windows platform plugin, Fusion widget style, 150% display scaling. One instrumented run at each size. Numbers below are observations from this machine; the OS cache was enabled and other verification processes were running.
 
@@ -23,7 +23,7 @@ Windows 11 build 26300, Intel Core i7-14650HX, CPython 3.15.2, PySide6 6.12.0, Q
 
 Each run seeds a fresh disposable v3 database with an indexed four-column observation table, an empty table, and 24 rows of multilingual text across twelve columns. Seeding is outside the timed operations. Each SQL result is bounded to 2,000 rows; the measured query explicitly limits output to 24. The table view reads 128 rows per request. Timings include worker dispatch, result delivery and GUI event processing. The 10 ms heartbeat fired 26 and 260 times respectively during index creation. Scrolling measures wall time for 100 updates in one loaded window. Memory is a point-in-time Windows process working set, not a peak or a leak test.
 
-Recovery measurement terminates a separate writer immediately after its marker sync. The Studio worker reopens the original file, reports actual replay, and retrieves the committed row. No durability settings are changed. A fresh process for the startup measurement does not imply a cold filesystem cache.
+Recovery measurement terminates a separate writer immediately after its marker sync. The timer covers reopening the original file and displaying the worker reply. The harness then checks the replay flag and queries the committed row. These baseline runs used the normal durability settings and the operating system file cache. Re-running the commands below measures the current checkout.
 
 From a GUI-enabled checkout in a desktop session:
 
