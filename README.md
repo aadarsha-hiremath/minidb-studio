@@ -22,7 +22,7 @@ py -3 -m venv .venv
 
 An existing checkout can start at the `py` command. The console entry point also works as `python -m minidb` with the installed interpreter.
 
-For Studio, add the optional PySide6 Widgets dependency and launch the installed application:
+Install the GUI extra to add PySide6 Essentials, which provides the Qt Widgets used by Studio. Launch Studio from the same environment.
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install ".[gui]"
@@ -30,7 +30,7 @@ For Studio, add the optional PySide6 Widgets dependency and launch the installed
 .\.venv\Scripts\minidb-gui.exe
 ```
 
-The Windows launcher uses this environment's Python and Qt libraries. Linux desktop users can run `python3 -m venv .venv`, `.venv/bin/python -m pip install ".[gui]"`, and `.venv/bin/minidb-gui` from the checkout. A working Qt platform plugin and a display are needed for interactive use. The engine CLI runs without Qt.
+The Windows launcher uses this environment's Python and Qt libraries. On Linux, run `python3 -m venv .venv`, `.venv/bin/python -m pip install ".[gui]"`, and `.venv/bin/minidb-gui` from the checkout. Interactive use requires a working Qt platform plugin and a display. The engine CLI runs without Qt.
 
 Studio shares one exclusive session across its editor, transaction controls, and explorer. Ctrl+Enter executes one statement. Click a table to browse 128 records at a time. Select a row to inspect it, or export a complete SQL result of up to 2,000 rows as CSV or JSON. Settings saves theme, density, typeface, layout, columns and recent files locally. [Navigation, safety boundaries and manual verification](docs/studio.md).
 
@@ -179,7 +179,7 @@ The Studio tests require the GUI extra. Set `$env:QT_QPA_PLATFORM='offscreen'` f
 
 The recovery demo terminates real child processes on disposable files and prints recovered balances. [Phase 3 transaction measurements](docs/transaction-benchmarks.md).
 
-The suite uses temporary files, seeded CRUD models, indexed and sequential query oracles, separately launched CLI processes, deliberately malformed checksummed pages, and injected I/O failures. Core discovery includes the [self-contained v1 migration regression](docs/format.md#public-v1-migration-fixtures). The CI workflow targets Windows and Ubuntu on Python 3.11 and 3.14. Check the public run history for hosted results. [GitHub Actions](https://github.com/aadarsha-hiremath/minidb-studio/actions).
+The suite uses temporary files, seeded CRUD models, indexed and sequential query oracles, separately launched CLI processes, deliberately malformed checksummed pages, and injected I/O failures. Core discovery includes the [self-contained v1 migration regression](docs/format.md#public-v1-migration-fixtures). For v0.4.0, the core and offscreen Studio suites passed on Windows and Ubuntu with Python 3.11 and 3.14. The owner passed five native Windows GUI acceptance checks. Native Linux desktop dialogs and macOS remain unverified. [Release verification](docs/release-notes-0.4.0.md#verification) · [GitHub Actions](https://github.com/aadarsha-hiremath/minidb-studio/actions).
 
 The index benchmark reports query time, maintenance cost, full-validation reopen time, and file size. [Historical Phase 2 benchmark measurements](docs/benchmarks.md).
 
