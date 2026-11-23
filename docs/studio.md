@@ -40,6 +40,8 @@ The screenshot harness explicitly creates a temporary field-observation database
 
 ## First-time verification
 
+Use the [source installation instructions](../README.md#install-and-run-on-windows) to install Studio. The [v0.4.0 verification results](release-notes-0.4.0.md#verification) cover offscreen CI on Windows and Ubuntu and five manual native Windows GUI checks. The steps below are a broader walkthrough for your own installation.
+
 1. Launch Studio from the installed virtual environment. Confirm the empty workspace. Open the native **Create** dialog and cancel it, then open it again and create a fresh `studio-check.mdb` in a disposable folder. Use **File → Close database**. Open the native **Open** dialog and cancel it, then reopen `studio-check.mdb` using that dialog.
 2. Run each of the following as a separate statement. Use the buttons or SQL commands for the transaction boundaries.
 
