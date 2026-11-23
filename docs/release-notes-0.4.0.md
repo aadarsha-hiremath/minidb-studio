@@ -39,9 +39,7 @@ This repository distributes source code only.
 No standalone Windows executable, installer, or prebuilt
 native application is included in this release.
 
-MiniDB's own source code is MIT licensed.
-The optional GUI uses separately licensed PySide6/Qt
-dependencies.
+MiniDB's own source code is [MIT licensed](../LICENSE). Installing the GUI extra obtains PySide6 Essentials and Shiboken separately. The upstream community distribution uses LGPLv3/GPLv3 terms, and Qt also offers commercial licensing. The source archives include reference LGPLv3 and GPLv3 texts. [Qt licensing](https://doc.qt.io/qt-6/licensing.html) · [Qt for Python licensing](https://doc.qt.io/qtforpython-6/index.html).
 
 ## Limitations
 
@@ -49,7 +47,8 @@ MiniDB is intended for educational and experimental use.
 It supports single-owner local database access and a
 limited SQL feature set.
 
-SQL joins, aggregation, MVCC, and simultaneous readers
-are not supported in this version.
+SQL is limited to single-table operations. Joins, aggregation, MVCC, and simultaneous readers are outside this version.
 
-See README.md for architecture, examples, and testing.
+WAL durability depends on local filesystem and device sync behavior. Windows process termination and injected I/O errors were tested. Physical power-loss behavior remains unverified. [Transaction and recovery guarantees](transactions.md).
+
+Local Windows checks used Python 3.11, 3.14 and 3.15. Hosted Ubuntu core checks passed. Studio verification on Ubuntu is pending. On Linux with Python 3.11 the GUI extra excludes PySide6 Essentials 6.12.0 because its bindings can abort the interpreter during Qt object cleanup. [Upstream Qt issue](https://qt-project.atlassian.net/browse/PYSIDE-3509) · [Installation and tests](../README.md) · [Public CI results](https://github.com/aadarsha-hiremath/minidb-studio/actions).

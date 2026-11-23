@@ -19,7 +19,11 @@ minidb = "minidb.cli:main"
 minidb-gui = "minidb_studio:main"
 
 [project.optional-dependencies]
-gui = ["PySide6-Essentials>=6.8,<7"]
+gui = [
+    "PySide6-Essentials>=6.8,<7",
+    # PYSIDE-3509: Linux PySide6 6.12.0 decrements None on Python 3.11.
+    "PySide6-Essentials!=6.12.0; sys_platform == 'linux' and python_version < '3.12'",
+]
 
 [tool.setuptools.dynamic]
 version = {attr = "minidb.__version__"}

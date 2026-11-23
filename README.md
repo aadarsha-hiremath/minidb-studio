@@ -137,7 +137,7 @@ with Database.open("library.mdb") as db:
 | `text` | Strict UTF-8 string, including empty strings and embedded NULs. |
 | `bool` | Python `True` or `False`. CLI spelling is `true` or `false`. |
 
-All columns are required for inserts and updates. Missing, extra, null, and incorrectly typed values raise `ValidationError`. A missing table or record raises `NotFound`. Expected engine errors derive from `DatabaseError`.
+Inserts and record-API updates require values for every column. SQL `UPDATE` changes the columns named in `SET`. Missing, extra, null, and incorrectly typed record values raise `ValidationError`. A missing table or record raises `NotFound`. Expected engine errors derive from `DatabaseError`.
 
 ## Storage architecture
 
@@ -179,7 +179,9 @@ The Studio tests require the GUI extra. Set `$env:QT_QPA_PLATFORM='offscreen'` f
 
 The recovery demo terminates real child processes on disposable files and prints recovered balances. [Phase 3 transaction measurements](docs/transaction-benchmarks.md).
 
-The suite uses temporary files, seeded CRUD models, indexed and sequential query oracles, separately launched CLI processes, deliberately malformed checksummed pages, and injected I/O failures. The engine and Studio test suites are included for local verification; this source-only repository does not currently run GitHub-hosted CI. The index benchmark reports query time, maintenance cost, full-validation reopen time, and file size. [Phase 2 benchmark measurements](docs/benchmarks.md).
+The suite uses temporary files, seeded CRUD models, indexed and sequential query oracles, separately launched CLI processes, deliberately malformed checksummed pages, and injected I/O failures. Core discovery includes the [self-contained v1 migration regression](docs/format.md#public-v1-migration-fixtures). The CI workflow targets Windows and Ubuntu on Python 3.11 and 3.14. Check the public run history for hosted results. [GitHub Actions](https://github.com/aadarsha-hiremath/minidb-studio/actions).
+
+The index benchmark reports query time, maintenance cost, full-validation reopen time, and file size. [Historical Phase 2 benchmark measurements](docs/benchmarks.md).
 
 The historical Phase 1 baseline below used `storage.py` on 1,500 integer/text rows. It fetched every record in seeded shuffled order, scanned every row, and verified values outside the timed regions. Create and bulk insert included close and sync. Table creation was outside the insert measurement. OS caches remained enabled.
 

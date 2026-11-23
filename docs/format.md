@@ -69,3 +69,14 @@ A new slot needs four bytes in addition to the encoded row. A fresh page therefo
 On a closed **v1** file with one table and one record, `Format-Hex -Path demo.mdb` in PowerShell shows `MINIDB` at offset `0x0000`, `SCHM` at `0x1000`, and `DATA` at `0x2000`. After its first insert, the file is 12,288 bytes and `2:0` refers to the directory entry at file offset `0x200E`. The format tests contain an independently packed byte fixture for a two-row page.
 
 In the corresponding v3 file, the same schema and data appear at offsets `0x3000` and `0x4000`. The first slot begins at `0x400E` and still has RID `2:0`.
+
+## Public v1 migration fixtures
+
+`tests/legacy_fixture.py` writes synthetic v1 pages directly from the layouts above using the Python standard library. It uses original test values and imports no MiniDB serializers. These fixtures represent the documented format and do not claim provenance from a historical executable. Both variants contain two heap pages, a tombstone, UTF-8 text, an embedded NUL, and signed integers. The indexed variant adds an index root, two linked leaves, and duplicate keys across the leaf boundary.
+
+| Fixture | Size | SHA-256 |
+| --- | ---: | --- |
+| Heap only | 16,384 bytes | `51ab8e1a13465db9e249af72a4bcc59ab02368dea1a866ce1eb24d6c0e4d301d` |
+| With integer index | 32,768 bytes | `5c92ccc3725e5409ee23d688c29d73ccabd0bab2fffa53e17e6725aada6d3419` |
+
+Run `python -m unittest discover -s tests -p test_legacy_compat.py -v` with MiniDB installed. The regression verifies the fixture hashes, record IDs, index contents, and migration error paths.

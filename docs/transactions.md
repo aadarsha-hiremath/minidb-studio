@@ -86,4 +86,6 @@ Creation exclusively creates both paths. On POSIX it syncs their parent director
 
 For a v1 database, run `minidb migrate original.mdb new.mdb`. Migration holds the source lock, validates the entire source, copies all logical storage pages to new physical offsets, publishes a fresh identity, and validates the result. Both destination paths must be new. The original file remains the backup. Phases 1 and 2 reject the v3 anchor. Phase 3 uses a writable file descriptor to acquire the same exclusive lock on v1 but forbids v1 mutations.
 
+On a handled migration failure, MiniDB attempts to remove output files it created exclusively for that attempt. It verifies file identity before removal and preserves paths that existed before the attempt. Abrupt process exit or a cleanup I/O failure can leave incomplete outputs. [Public v1 migration fixtures](format.md#public-v1-migration-fixtures).
+
 Back up only a healthy, closed pair with no other writer. After an interrupted commit, recover at the original path and verify integrity before moving or copying the pair. If durable media loses the only commit record, external tools replace files, or the device violates successful sync ordering, software cannot promise recovery. The tests exercise process termination, partial writes, repeated redo and reported I/O errors. They do not physically power-cycle a storage device.

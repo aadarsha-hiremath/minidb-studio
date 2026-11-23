@@ -1,4 +1,4 @@
-# Phase 2 benchmark
+# Historical Phase 2 index benchmark
 
 Windows 11 build 26300, Intel Core i7-14650HX, CPython 3.15.2. Values are medians of three iterations per size. Each iteration creates two fresh temporary files with identical rows in seeded shuffled insertion order. One file has an integer index. Every timed query runs through the SQL parser, binder, planner and executor on an already open handle. The script checks that both access paths return the same rows.
 
@@ -18,7 +18,7 @@ Each equality probe matches one unique key. Each bounded range spans up to five 
 
 On the 250-row workload, the time saved on 24 equality probes was about 5.6 ms while building the index alone took 22.1 ms. At 3,000 rows, 24 equality probes saved about 220 ms on an open handle. Reopening the indexed file cost about 181 ms extra. One-process-per-query CLI measurements include that cost. Broad ranges can also incur one heap lookup per match, and the heuristic planner does not estimate selectivity.
 
-Reproduce from an installed checkout:
+The tables above record the Phase 2 writer, which synced on close. Run the same workload from the current public checkout to measure v0.4.0. Current write timings include transaction commit and checkpoint work.
 
 ```powershell
 .\.venv\Scripts\python.exe benchmarks/indexing.py --sizes 250 1000 3000 --iterations 3 --probes 24 --edits 50

@@ -28,7 +28,9 @@ def collect(folder):
     license_root = root / "third_party_licenses"
     for name in ("LGPL-3.0-only.txt", "GPL-3.0-only.txt"):
         src = license_root / name
-        if not src.is_file() or "GENERAL PUBLIC LICENSE" not in src.read_text(encoding="utf-8"):
+        if not src.is_file() or "GENERAL PUBLIC LICENSE" not in src.read_text(
+            encoding="utf-8"
+        ):
             raise FileNotFoundError(f"Required Qt LGPL/GPL license text absent: {src}")
         shutil.copy2(src, dest / name)
     python_license = Path(sys.base_prefix) / "LICENSE.txt"
@@ -42,9 +44,10 @@ def collect(folder):
         copied = []
         for path in dist.files or ():
             rel = Path(str(path))
-            if not any(part in rel.name.lower() for part in LICENSE_PARTS):
-                if not any(part.lower() in LICENSE_PARTS for part in rel.parts):
-                    continue
+            if not any(part in rel.name.lower() for part in LICENSE_PARTS) and not any(
+                part.lower() in LICENSE_PARTS for part in rel.parts
+            ):
+                continue
             absolute = Path(dist.locate_file(path))
             if not absolute.is_file():
                 continue
@@ -60,17 +63,24 @@ def collect(folder):
                 f"No installed copyright/license text located for {name}; "
                 "public binary distribution is blocked"
             )
-        packages.append({"name": dist.metadata["Name"], "version": dist.version, "notices": copied})
+        packages.append(
+            {"name": dist.metadata["Name"], "version": dist.version, "notices": copied}
+        )
 
     binary_files = []
     for path in sorted(folder.rglob("*")):
         if path.is_file() and path.suffix.lower() in (".dll", ".pyd", ".exe"):
-            binary_files.append({
-                "path": path.relative_to(folder).as_posix(),
-                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-            })
+            binary_files.append(
+                {
+                    "path": path.relative_to(folder).as_posix(),
+                    "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                }
+            )
     (dest / "BINARY-INVENTORY.json").write_text(
-        json.dumps({"python": sys.version, "packages": packages, "binaries": binary_files}, indent=2),
+        json.dumps(
+            {"python": sys.version, "packages": packages, "binaries": binary_files},
+            indent=2,
+        ),
         encoding="utf-8",
     )
     (dest / "READ-ME-FIRST.txt").write_text(
@@ -94,5 +104,7 @@ def collect(folder):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        raise SystemExit("Usage: python tools/collect_runtime_licenses.py dist/MiniDB-Studio")
+        raise SystemExit(
+            "Usage: python tools/collect_runtime_licenses.py dist/MiniDB-Studio"
+        )
     collect(sys.argv[1])

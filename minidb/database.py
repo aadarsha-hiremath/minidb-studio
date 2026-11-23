@@ -103,8 +103,31 @@ class Database:
         with cls.open(source) as old:
             if not old._pager.legacy:
                 raise TransactionError("migration requires a v1 source")
-            with cls(Pager(destination, create=True, source=old._pager)):
-                pass
+            created: dict[Path, os.stat_result] = {}
+            try:
+                with cls(
+                    Pager(destination, create=True, source=old._pager, created=created)
+                ):
+                    pass
+            except BaseException as exc:
+                # Both output streams are closed by this point. Remove only
+                # files exclusively created by this migration and still ours.
+                for path, identity in reversed(created.items()):
+                    try:
+                        current = path.lstat()
+                        if identity.st_ino and os.path.samestat(current, identity):
+                            path.unlink()
+                        else:
+                            exc.add_note(
+                                f"Migration output identity changed or unavailable: {path}"
+                            )
+                    except FileNotFoundError:
+                        pass
+                    except OSError as cleanup:
+                        exc.add_note(
+                            f"Could not remove incomplete migration output: {cleanup}"
+                        )
+                raise
 
     @property
     def transaction_state(self) -> str:

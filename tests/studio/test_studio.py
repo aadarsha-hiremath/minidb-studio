@@ -7,29 +7,64 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from functools import wraps
 from pathlib import Path
+from time import monotonic
 from unittest.mock import patch
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QCoreApplication, QEvent, QEventLoop, Qt, QTimer
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from minidb import Busy, Database, wal
 from minidb.binary import PAGE_SIZE, seal
 from minidb.pager import HEADER
+from minidb_studio.service import Session
 from minidb_studio.settings import Settings
 from minidb_studio.window import Window
 
 
-def until(predicate):
-    from time import monotonic
+def until(predicate, *, describe=lambda: "Studio"):
+    if predicate():
+        return
+    start = monotonic()
+    loop = QEventLoop()
+    poll = QTimer()
+    deadline = QTimer()
 
-    end = monotonic() + 30
-    while not predicate() and monotonic() < end:
-        QApplication.processEvents()
-        QTest.qWait(4)
+    def check():
+        if predicate():
+            loop.quit()
+
+    poll.timeout.connect(check)
+    deadline.setSingleShot(True)
+    deadline.timeout.connect(loop.quit)
+    poll.start(10)
+    deadline.start(30_000)
+    loop.exec()
+    poll.stop()
+    deadline.stop()
     if not predicate():
-        raise AssertionError("timed out waiting for Studio")
+        raise AssertionError(
+            f"Timed out after {monotonic() - start:.2f}s waiting for {describe()}"
+        )
+
+
+def dispose_stopped_window(window):
+    if not window.thread.wait(5000) or not window.thread.isFinished():
+        raise AssertionError("Studio worker thread survived window close")
+    window.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+
+def restart_studio(root, operation):
+    helper = Path(__file__).with_name("restart.py")
+    subprocess.run(
+        [sys.executable, str(helper), str(root), operation],
+        env={**os.environ, "QT_SCALE_FACTOR": "1.5"},
+        check=True,
+        timeout=40,
+    )
 
 
 class StudioTests(unittest.TestCase):
@@ -51,15 +86,28 @@ class StudioTests(unittest.TestCase):
 
     def shutdown(self):
         if not self.win.stopped:
-            until(lambda: not self.win.busy)
+            self.wait(lambda: not self.win.busy, "pending operation before shutdown")
             self.win.editor.document().setModified(False)
             with patch.object(self.win, "confirm", return_value=True):
                 self.win.close()
-                until(lambda: self.win.stopped)
+                self.wait(lambda: self.win.stopped, "worker shutdown")
+        dispose_stopped_window(self.win)
 
-    def go(self, name, *args, ok=True):
+    def wait(self, predicate, operation, *, progress=None):
+        def describe():
+            window = self.win
+            return (
+                f"{operation}; worker_running={window.thread.isRunning()}, "
+                f"queued={window.thread.commands.qsize()}, busy={window.busy}, "
+                f"closing={window.closing}, error_visible={bool(window.notice.text())}, "
+                f"progress={dict(progress or {})}"
+            )
+
+        until(predicate, describe=describe)
+
+    def go(self, name, *args, ok=True, progress=None):
         self.assertTrue(self.win.submit(name, *args))
-        until(lambda: not self.win.busy)
+        self.wait(lambda: not self.win.busy, name, progress=progress)
         if ok:
             self.assertFalse(self.win.notice.text(), self.win.notice.text())
         else:
@@ -218,11 +266,54 @@ class StudioTests(unittest.TestCase):
         self.path.write_bytes(legacy)
         self.go("open", str(self.path))
         self.assertTrue(self.win.migrate_btn.isVisible())
+        occupied = self.root / "occupied.mdb"
+        companion = occupied.with_suffix(".mdb.wal")
+        companion.write_bytes(b"keep this prior sidecar")
+        self.go("migrate", str(occupied), ok=False)
+        self.assertFalse(occupied.exists())
+        self.assertEqual(companion.read_bytes(), b"keep this prior sidecar")
+        self.assertEqual(self.win.snap["path"], str(self.path))
+        self.go("close")
+        self.assertEqual(self.path.read_bytes(), legacy)
+        self.go("open", str(self.path))
+
         destination = self.root / "current.mdb"
-        self.go("migrate", str(destination))
+        progress = {"phase": "queued"}
+
+        def trace(phase, action):
+            @wraps(action)
+            def timed(*args, **kwargs):
+                progress["phase"] = phase
+                start = monotonic()
+                try:
+                    return action(*args, **kwargs)
+                except BaseException as error:
+                    progress["error_type"] = type(error).__name__
+                    raise
+                finally:
+                    progress[f"{phase}_ms"] = round((monotonic() - start) * 1000, 2)
+                    progress["phase"] = f"{phase} returned"
+
+            return timed
+
+        with (
+            patch.object(Session, "migrate", trace("session_migrate", Session.migrate)),
+            patch.object(Database, "migrate", trace("core_migrate", Database.migrate)),
+            patch.object(
+                Session, "connect", trace("reopen_destination", Session.connect)
+            ),
+            patch.object(
+                Session, "snapshot", trace("worker_snapshot", Session.snapshot)
+            ),
+        ):
+            self.go("migrate", str(destination), progress=progress)
         self.assertEqual(self.win.snap["format"], 3)
         self.assertEqual(self.path.read_bytes(), legacy)
         self.assertEqual(self.win.snap["path"], str(destination))
+        self.go("close")
+        with Database.open(destination) as db:
+            self.assertEqual(db.storage_status()["format"], 3)
+            self.assertEqual(db.tables(), ())
 
     def test_close_during_operation_and_skip_rapid_duplicate(self):
         self.assertTrue(self.win.submit("open", str(self.path), True))
@@ -270,14 +361,18 @@ class StudioTests(unittest.TestCase):
         self.assertEqual(self.win.results.dataset.rows, [{"sample": 42}])
 
     def test_preferences_restart_process_and_reset(self):
-        helper = Path(__file__).with_name("restart.py")
         for operation in ("save", "read", "reset", "defaults"):
-            subprocess.run(
-                [sys.executable, str(helper), str(self.root), operation],
-                env={**os.environ, "QT_SCALE_FACTOR": "1.5"},
-                check=True,
-                timeout=40,
-            )
+            with self.subTest(operation=operation):
+                restart_studio(self.root, operation)
+
+    def test_preferences_save_repeated_clean_interpreter_exit(self):
+        for index in range(3):
+            with self.subTest(process=index):
+                profile = self.root / str(index)
+                profile.mkdir()
+                restart_studio(profile, "save")
+                with Database.open(profile / "prefs.mdb") as db:
+                    self.assertEqual(db.tables(), ("settings_test",))
 
     def test_one_invalid_preference_keeps_valid_preferences(self):
         path = self.root / "prefs.json"
