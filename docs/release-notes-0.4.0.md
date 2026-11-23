@@ -51,4 +51,4 @@ SQL is limited to single-table operations. Joins, aggregation, MVCC, and simulta
 
 WAL durability depends on local filesystem and device sync behavior. Windows process termination and injected I/O errors were tested. Physical power-loss behavior remains unverified. [Transaction and recovery guarantees](transactions.md).
 
-Local Windows checks used Python 3.11, 3.14 and 3.15. Hosted Ubuntu verification is pending. [Installation and tests](../README.md) · [Public CI results](https://github.com/aadarsha-hiremath/minidb-studio/actions).
+Local Windows checks used Python 3.11, 3.14 and 3.15. Hosted Ubuntu core checks passed. Studio verification on Ubuntu is pending. On Linux with Python 3.11 the GUI extra excludes PySide6 Essentials 6.12.0 because its bindings can abort the interpreter during Qt object cleanup. [Upstream Qt issue](https://qt-project.atlassian.net/browse/PYSIDE-3509) · [Installation and tests](../README.md) · [Public CI results](https://github.com/aadarsha-hiremath/minidb-studio/actions).

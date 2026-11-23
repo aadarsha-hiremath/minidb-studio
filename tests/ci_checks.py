@@ -52,7 +52,7 @@ def run_suite(kind):
         raise SystemExit(
             f"Incomplete discovery: missing modules {expected - modules}, missing tests {required - ids}"
         )
-    minimum = 77 if kind == "core" else 13
+    minimum = 77 if kind == "core" else 14
     if len(ids) < minimum:
         raise SystemExit(f"Expected at least {minimum} tests, discovered {len(ids)}")
     result = unittest.TextTestRunner(verbosity=2).run(suite)
@@ -70,7 +70,10 @@ def installed():
     assert dist.version == minidb.__version__ == "0.4.0"
     assert dist.metadata["Requires-Python"] == ">=3.11"
     assert dist.metadata["License-Expression"] == "MIT"
-    assert dist.requires == ['PySide6-Essentials<7,>=6.8; extra == "gui"']
+    assert dist.requires == [
+        'PySide6-Essentials<7,>=6.8; extra == "gui"',
+        'PySide6-Essentials!=6.12.0; (sys_platform == "linux" and python_version < "3.12") and extra == "gui"',
+    ]
     assert dist.read_text("licenses/LICENSE").startswith("MIT License")
     assert {(e.group, e.name, e.value) for e in dist.entry_points} == {
         ("console_scripts", "minidb", "minidb.cli:main"),
@@ -105,9 +108,12 @@ def core_smoke():
 
 
 def studio_smoke():
+    from PySide6.QtCore import qVersion
+
     installed()
     for package in ("PySide6-Essentials", "shiboken6"):
         print(package, metadata.version(package), flush=True)
+    print("Qt runtime", qVersion(), flush=True)
     subprocess.run(
         [sys.executable, str(ROOT / "studio" / "launcher.py")], timeout=45, check=True
     )

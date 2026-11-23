@@ -6,9 +6,8 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
-from PySide6.QtCore import QCoreApplication, QEvent
 from PySide6.QtWidgets import QApplication, QDialog
-from test_studio import until
+from test_studio import dispose_stopped_window, until
 
 from minidb_studio.dialogs import Preferences
 from minidb_studio.settings import DEFAULTS, Settings
@@ -104,12 +103,10 @@ def main():
             assert prefs.values[key] == DEFAULTS[key], (key, prefs.values[key])
     win.close()
     until(lambda: win.stopped)
-    assert win.thread.wait(5000) and win.thread.isFinished()
     # Dispose the stopped Qt window before QApplication/interpreter teardown.
     # Relying on Python's shutdown order can leave binding-owned Qt objects
     # alive after their QApplication has begun destruction.
-    win.deleteLater()
-    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    dispose_stopped_window(win)
     app.processEvents()
 
 
